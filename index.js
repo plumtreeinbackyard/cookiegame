@@ -12,44 +12,39 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'dist')));
 
-app.post('/updatescore', (req, res) => {
-    var newScore = req.body;  
-  
-    var records = games.getAll();
-    //  For the first time when there is no record in the database.
+app.get('/score', async (req, res) => {
+  games
+    .getAll()
+    .then((result) => {
+      res.json(result);
+    });
+});
+
+app.post('/updatescore', async (req, res) => {
+    var requestData = req.body.score;  
+    var records = await games.getAll();  
+
+    //  For the first time when there is no record in the database, create a new record.
     if (records.length == 0) {
-        var data = { score : 0 };
-        games
-            .create(data)
-            .then((product) => {
-            res.json(product);
-            })
+        var data = { score : 1 };
+        await games
+            .create(data)            
             .catch((error) => {
             res.status(500);
             res.json(error);
             });
     } else {
         // If there is already one record, then update it.
-        var id = records[0].id;
+        var id = records[0]._id;
         var score = records[0].score;
-        newScore += score;
-        games
+        var newScore = parseInt(score) + parseInt(requestData);        
+        await games
             .updateGame(id, newScore)
-            .then((result) => {
-                res.json(result);
-            })
             .catch((error) => {
                 res.status(500);
                 res.json(error);
             });
-    }  
-
-    // Get the latest score from database.
-    games
-        .getAll()
-        .then((result) => {
-            res.json(result);
-        });
+    } 
 });
 
 app.all('/', (_req, res) => {
